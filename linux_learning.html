@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linux Terminal Emulator - Learn Linux Commands</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            color: #00ff00;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 350px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-right: 2px solid #00ff00;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .terminal-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(0, 0, 0, 0.9);
+            position: relative;
+        }
+
+        .terminal-header {
+            background: linear-gradient(90deg, #333, #444);
+            padding: 10px 20px;
+            border-bottom: 1px solid #555;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .terminal-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .btn.close { background: #ff5f56; }
+        .btn.minimize { background: #ffbd2e; }
+        .btn.maximize { background: #27ca3f; }
+
+        .terminal-title {
+            color: #ccc;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+
+        .terminal {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #000;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .input-line {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .prompt {
+            color: #00ff00;
+            margin-right: 10px;
+        }
+
+        .command-input {
+            background: transparent;
+            border: none;
+            color: #00ff00;
+            outline: none;
+            font-family: inherit;
+            font-size: inherit;
+            flex: 1;
+        }
+
+        .output {
+            color: #ffffff;
+            margin: 5px 0;
+            white-space: pre-wrap;
+        }
+
+        .error {
+            color: #ff4444;
+        }
+
+        .success {
+            color: #44ff44;
+        }
+
+        .info {
+            color: #4444ff;
+        }
+
+        .challenge {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        .challenge h3 {
+            color: #00ff00;
+            margin-bottom: 10px;
+        }
+
+        .challenge-list {
+            list-style: none;
+        }
+
+        .challenge-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .challenge-item:hover {
+            background: rgba(0, 255, 0, 0.1);
+            border-left-color: #00ff00;
+        }
+
+        .challenge-item.completed {
+            border-left-color: #44ff44;
+            opacity: 0.7;
+        }
+
+        .challenge-item.active {
+            border-left-color: #ffff00;
+            background: rgba(255, 255, 0, 0.1);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #44ff44);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .stat {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .hint-button {
+            background: rgba(255, 255, 0, 0.2);
+            border: 1px solid #ffff00;
+            color: #ffff00;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-family: inherit;
+        }
+
+        .hint-button:hover {
+            background: rgba(255, 255, 0, 0.3);
+        }
+
+        .file-tree {
+            color: #888;
+            margin: 10px 0;
+            font-size: 12px;
+        }
+
+        .blink {
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        .typing {
+            color: #00ff00;
+        }
+
+        .welcome-animation {
+            animation: fadeIn 2s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h2 style="color: #00ff00; margin-bottom: 20px;">🐧 Linux Learning Path</h2>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat">
+                    <div style="color: #00ff00;">Level</div>
+                    <div id="userLevel">Beginner</div>
+                </div>
+                <div class="stat">
+                    <div style="color: #00ff00;">Score</div>
+                    <div id="userScore">0</div>
+                </div>
+            </div>
+
+            <div class="challenge">
+                <h3>Current Challenge</h3>
+                <div id="currentChallenge">Click a challenge to start!</div>
+                <button class="hint-button" id="hintButton" onclick="showHint()" style="display: none;">💡 Show Hint</button>
+            </div>
+
+            <h3 style="color: #00ff00; margin: 20px 0 10px 0;">Challenges</h3>
+            <ul class="challenge-list" id="challengeList"></ul>
+        </div>
+
+        <div class="terminal-container">
+            <div class="terminal-header">
+                <div class="terminal-buttons">
+                    <div class="btn close"></div>
+                    <div class="btn minimize"></div>
+                    <div class="btn maximize"></div>
+                </div>
+                <div class="terminal-title">user@linux-emulator:~</div>
+            </div>
+            
+            <div class="terminal" id="terminal">
+                <div class="welcome-animation">
+                    <div class="output success">Welcome to Linux Terminal Emulator! 🐧</div>
+                    <div class="output">Learn Linux commands through interactive challenges.</div>
+                    <div class="output">Type 'help' for available commands or select a challenge from the sidebar.</div>
+                    <div class="output"></div>
+                </div>
+                
+                <div class="input-line">
+                    <span class="prompt">user@linux:~$</span>
+                    <input type="text" class="command-input" id="commandInput" autocomplete="off" spellcheck="false">
+                    <span class="blink">|</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // File system simulation
+        let fileSystem = {
+            '/': {
+                'home': {
+                    'user': {
+                        'documents': {
+                            'readme.txt': 'Welcome to Linux!\nThis is your home directory.',
+                            'notes.txt': 'Practice makes perfect!'
+                        },
+                        'downloads': {},
+                        'desktop': {
+                            'hello.txt': 'Hello, World!'
+                        }
+                    }
+                },
+                'etc': {
+                    'passwd': 'root:x:0:0:root:/root:/bin/bash\nuser:x:1000:1000:user,,,:/home/user:/bin/bash'
+                },
+                'var': {
+                    'log': {}
+                },
+                'tmp': {}
+            }
+        };
+
+        let currentPath = '/home/user';
+        let commandHistory = [];
+        let historyIndex = -1;
+        let currentChallenge = null;
+        let completedChallenges = new Set();
+        let userScore = 0;
+        let userLevel = 'Beginner';
+
+        // Challenge definitions
+        const challenges = [
+            {
+                id: 1,
+                title: "Basic Navigation",
+                description: "Learn to navigate directories with 'pwd', 'ls', and 'cd'",
+                tasks: [
+                    { command: "pwd", description: "Print current working directory" },
+                    { command: "ls", description: "List files and directories" },
+                    { command: "cd documents", description: "Change to documents directory" }
+                ],
+                hint: "Use 'pwd' to see where you are, 'ls' to see what's here, and 'cd' to move around!",
+                points: 10
+            },
+            {
+                id: 2,
+                title: "File Operations",
+                description: "Create, read, and manage files",
+                tasks: [
+                    { command: "touch newfile.txt", description: "Create a new empty file" },
+                    { command: "cat readme.txt", description: "Display file contents" },
+                    { command: "ls -l", description: "List files with detailed information" }
+                ],
+                hint: "Use 'touch' to create files, 'cat' to read them, and 'ls -l' for detailed listings!",
+                points: 15
+            },
+            {
+                id: 3,
+                title: "Directory Management",
+                description: "Create and manage directories",
+                tasks: [
+                    { command: "mkdir projects", description: "Create a new directory" },
+                    { command: "cd projects", description: "Enter the new directory" },
+                    { command: "pwd", description: "Confirm your location" }
+                ],
+                hint: "Use 'mkdir' to create directories and 'cd' to navigate into them!",
+                points: 15
+            },
+            {
+                id: 4,
+                title: "File Content & Editing",
+                description: "Work with file contents",
+                tasks: [
+                    { command: "echo 'Hello Linux!' > greeting.txt", description: "Create file with content" },
+                    { command: "cat greeting.txt", description: "Read the file" },
+                    { command: "wc -l greeting.txt", description: "Count lines in file" }
+                ],
+                hint: "Use 'echo' with '>' to write to files, 'cat' to read, and 'wc' to count!",
+                points: 20
+            },
+            {
+                id: 5,
+                title: "File Permissions",
+                description: "Understand and modify file permissions",
+                tasks: [
+                    { command: "ls -l", description: "Check file permissions" },
+                    { command: "chmod 755 greeting.txt", description: "Change file permissions" },
+                    { command: "ls -l greeting.txt", description: "Verify permission changes" }
+                ],
+                hint: "Use 'ls -l' to see permissions and 'chmod' to change them!",
+                points: 25
+            },
+            {
+                id: 6,
+                title: "Process Management",
+                description: "Learn about system processes",
+                tasks: [
+                    { command: "ps", description: "List running processes" },
+                    { command: "top", description: "Display system processes (simulated)" },
+                    { command: "whoami", description: "Show current user" }
+                ],
+                hint: "Use 'ps' for process list, 'top' for live view, and 'whoami' to see current user!",
+                points: 25
+            },
+            {
+                id: 7,
+                title: "Advanced Navigation",
+                description: "Master advanced directory operations",
+                tasks: [
+                    { command: "find . -name '*.txt'", description: "Find all .txt files" },
+                    { command: "du -h", description: "Check directory sizes" },
+                    { command: "cd ..", description: "Navigate to parent directory" }
+                ],
+                hint: "Use 'find' to search files, 'du -h' for disk usage, and '..' for parent directory!",
+                points: 30
+            }
+        ];
+
+        // Initialize the application
+        function init() {
+            renderChallenges();
+            updateProgress();
+            focusInput();
+            
+            // Add event listeners
+            document.getElementById('commandInput').addEventListener('keydown', handleKeyDown);
+            document.getElementById('commandInput').addEventListener('input', handleInput);
+        }
+
+        function renderChallenges() {
+            const challengeList = document.getElementById('challengeList');
+            challengeList.innerHTML = '';
+            
+            challenges.forEach(challenge => {
+                const li = document.createElement('li');
+                li.className = 'challenge-item';
+                li.innerHTML = `
+                    <strong>${challenge.title}</strong>
+                    <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">${challenge.description}</div>
+                    <div style="font-size: 11px; color: #00ff00; margin-top: 5px;">+${challenge.points} points</div>
+                `;
+                
+                if (completedChallenges.has(challenge.id)) {
+                    li.classList.add('completed');
+                }
+                
+                if (currentChallenge && currentChallenge.id === challenge.id) {
+                    li.classList.add('active');
+                }
+                
+                li.addEventListener('click', () => selectChallenge(challenge));
+                challengeList.appendChild(li);
+            });
+        }
+
+        function selectChallenge(challenge) {
+            currentChallenge = challenge;
+            currentChallenge.currentTask = 0;
+            
+            const challengeDiv = document.getElementById('currentChallenge');
+            challengeDiv.innerHTML = `
+                <strong>${challenge.title}</strong>
+                <div style="margin: 10px 0; font-size: 12px;">${challenge.description}</div>
+                <div style="color: #ffff00;">Task ${challenge.currentTask + 1}/${challenge.tasks.length}:</div>
+                <div style="margin: 5px 0;">${challenge.tasks[challenge.currentTask].description}</div>
+                <div style="color: #888; font-size: 11px;">Try: ${challenge.tasks[challenge.currentTask].command}</div>
+            `;
+            
+            document.getElementById('hintButton').style.display = 'block';
+            renderChallenges();
+            addOutput(`Challenge selected: ${challenge.title}`, 'info');
+            addOutput(`Task: ${challenge.tasks[challenge.currentTask].description}`, 'info');
+        }
+
+        function handleKeyDown(event) {
+            const input = event.target;
+            
+            if (event.key === 'Enter') {
+                const command = input.value.trim();
+                if (command) {
+                    processCommand(command);
+                    commandHistory.push(command);
+                    historyIndex = commandHistory.length;
+                }
+                input.value = '';
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    input.value = commandHistory[historyIndex];
+                }
+            } else if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    input.value = commandHistory[historyIndex];
+                } else {
+                    historyIndex = commandHistory.length;
+                    input.value = '';
+                }
+            } else if (event.key === 'Tab') {
+                event.preventDefault();
+                // Tab completion could be implemented here
+            }
+        }
+
+        function handleInput(event) {
+            // Add typing effect or auto-completion here if needed
+        }
+
+        function processCommand(command) {
+            // Display the command
+            addOutput(`user@linux:${currentPath}$ ${command}`, 'typing');
+            
+            // Parse command
+            const parts = command.split(' ');
+            const cmd = parts[0];
+            const args = parts.slice(1);
+            
+            // Execute command
+            executeCommand(cmd, args, command);
+            
+            // Check if this completes a challenge task
+            if (currentChallenge) {
+                checkChallengeProgress(command);
+            }
+            
+            // Scroll to bottom
+            scrollToBottom();
+        }
+
+        function executeCommand(cmd, args, fullCommand) {
+            switch (cmd) {
+                case 'help':
+                    showHelp();
+                    break;
+                case 'pwd':
+                    addOutput(currentPath);
+                    break;
+                case 'ls':
+                    listDirectory(args);
+                    break;
+                case 'cd':
+                    changeDirectory(args[0] || '~');
+                    break;
+                case 'mkdir':
+                    makeDirectory(args[0]);
+                    break;
+                case 'touch':
+                    createFile(args[0]);
+                    break;
+                case 'cat':
+                    displayFile(args[0]);
+                    break;
+                case 'echo':
+                    handleEcho(args, fullCommand);
+                    break;
+                case 'rm':
+                    removeFile(args);
+                    break;
+                case 'chmod':
+                    changePermissions(args);
+                    break;
+                case 'ps':
+                    showProcesses();
+                    break;
+                case 'top':
+                    showTop();
+                    break;
+                case 'whoami':
+                    addOutput('user');
+                    break;
+                case 'find':
+                    findFiles(args);
+                    break;
+                case 'du':
+                    diskUsage(args);
+                    break;
+                case 'wc':
+                    wordCount(args);
+                    break;
+                case 'clear':
+                    clearTerminal();
+                    break;
+                case 'history':
+                    showHistory();
+                    break;
+                default:
+                    addOutput(`Command not found: ${cmd}`, 'error');
+                    addOutput(`Type 'help' for available commands.`, 'info');
+            }
+        }
+
+        function showHelp() {
+            const helpText = `Available commands:
+help        - Show this help message
+pwd         - Print working directory
+ls [options] - List directory contents
+cd <dir>    - Change directory
+mkdir <dir> - Create directory
+touch <file> - Create empty file
+cat <file>  - Display file contents
+echo <text> - Print text (use > file to save)
+rm <file>   - Remove file
+chmod <perm> <file> - Change file permissions
+ps          - Show processes
+top         - Show system processes
+whoami      - Show current user
+find <pattern> - Find files
+du [options] - Show disk usage
+wc [options] <file> - Word count
+clear       - Clear terminal
+history     - Show command history
+
+Use Tab for auto-completion and arrow keys for command history.`;
+            addOutput(helpText, 'info');
+        }
+
+        function listDirectory(args) {
+            const current = getCurrentDirectory();
+            if (!current) {
+                addOutput('Directory not found', 'error');
+                return;
+            }
+            
+            const detailed = args.includes('-l');
+            const showHidden = args.includes('-a');
+            const humanReadable = args.includes('-h');
+            
+            let output = '';
+            Object.keys(current).forEach(item => {
+                if (!showHidden && item.startsWith('.')) return;
+                
+                if (detailed) {
+                    const isDir = typeof current[item] === 'object' && !current[item].hasOwnProperty('content');
+                    const permissions = isDir ? 'drwxr-xr-x' : '-rw-r--r--';
+                    const size = isDir ? '4096' : '1024';
+                    output += `${permissions} 1 user user ${size} Jan 19 12:00 ${item}\n`;
+                } else {
+                    output += item + '  ';
+                }
+            });
+            
+            addOutput(output.trim() || 'Directory is empty');
+        }
+
+        function changeDirectory(path) {
+            if (path === '~' || path === '') {
+                currentPath = '/home/user';
+                return;
+            }
+            
+            if (path === '..') {
+                const pathParts = currentPath.split('/').filter(p => p);
+                pathParts.pop();
+                currentPath = '/' + pathParts.join('/');
+                if (currentPath === '/') currentPath = '/';
+                return;
+            }
+            
+            if (path.startsWith('/')) {
+                // Absolute path
+                if (directoryExists(path)) {
+                    currentPath = path;
+                } else {
+                    addOutput(`cd: ${path}: No such file or directory`, 'error');
+                }
+            } else {
+                // Relative path
+                const newPath = currentPath === '/' ? `/${path}` : `${currentPath}/${path}`;
+                if (directoryExists(newPath)) {
+                    currentPath = newPath;
+                } else {
+                    addOutput(`cd: ${path}: No such file or directory`, 'error');
+                }
+            }
+        }
+
+        function makeDirectory(name) {
+            if (!name) {
+                addOutput('mkdir: missing operand', 'error');
+                return;
+            }
+            
+            const current = getCurrentDirectory();
+            if (current && !current[name]) {
+                current[name] = {};
+                addOutput(`Directory '${name}' created`);
+            } else {
+                addOutput(`mkdir: cannot create directory '${name}': File exists`, 'error');
+            }
+        }
+
+        function createFile(name) {
+            if (!name) {
+                addOutput('touch: missing operand', 'error');
+                return;
+            }
+            
+            const current = getCurrentDirectory();
+            if (current) {
+                if (!current[name]) {
+                    current[name] = '';
+                    addOutput(`File '${name}' created`);
+                } else {
+                    addOutput(`File '${name}' already exists`);
+                }
+            }
+        }
+
+        function displayFile(name) {
+            if (!name) {
+                addOutput('cat: missing operand', 'error');
+                return;
+            }
+            
+            const current = getCurrentDirectory();
+            if (current && current[name] !== undefined) {
+                if (typeof current[name] === 'string') {
+                    addOutput(current[name] || '(empty file)');
+                } else {
+                    addOutput(`cat: ${name}: Is a directory`, 'error');
+                }
+            } else {
+                addOutput(`cat: ${name}: No such file or directory`, 'error');
+            }
+        }
+
+        function handleEcho(args, fullCommand) {
+            const match = fullCommand.match(/echo\s+(.+?)\s*>\s*(.+)/);
+            if (match) {
+                const content = match[1].replace(/['"]/g, '');
+                const filename = match[2].trim();
+                const current = getCurrentDirectory();
+                if (current) {
+                    current[filename] = content;
+                    addOutput(`Content written to '${filename}'`);
+                }
+            } else {
+                const text = args.join(' ').replace(/['"]/g, '');
+                addOutput(text);
+            }
+        }
+
+        function changePermissions(args) {
+            if (args.length < 2) {
+                addOutput('chmod: missing operands', 'error');
+                return;
+            }
+            
+            const permissions = args[0];
+            const filename = args[1];
+            
+            addOutput(`Permissions changed for '${filename}' to ${permissions}`);
+        }
+
+        function showProcesses() {
+            const processes = `  PID TTY      TIME CMD
+ 1234 pts/0    00:00:01 bash
+ 5678 pts/0    00:00:00 linux-emulator
+ 9012 pts/0    00:00:00 ps`;
+            addOutput(processes);
+        }
+
+        function showTop() {
+            const topOutput = `top - 12:00:00 up 1 day, 2:34, 1 user, load average: 0.5, 0.3, 0.2
+Tasks: 3 total, 1 running, 2 sleeping, 0 stopped, 0 zombie
+%Cpu(s): 2.1 us, 1.3 sy, 0.0 ni, 96.6 id, 0.0 wa, 0.0 hi, 0.0 si
+KiB Mem: 4096000 total, 2048000 used, 2048000 free, 512000 buffers
+
+  PID USER     PR NI VIRT  RES  SHR S %CPU %MEM    TIME+ COMMAND
+ 1234 user     20  0  123M  45M  12M S  1.5  1.1   0:01.23 linux-emulator
+ 5678 user     20  0   89M  23M   8M S  0.0  0.6   0:00.45 bash`;
+            addOutput(topOutput);
+        }
+
+        function findFiles(args) {
+            if (args.includes('-name') && args.length >= 2) {
+                const pattern = args[args.indexOf('-name') + 1];
+                const results = [];
+                findFilesRecursive(fileSystem['/'], '/', pattern, results);
+                if (results.length > 0) {
+                    addOutput(results.join('\n'));
+                } else {
+                    addOutput('No files found');
+                }
+            } else {
+                addOutput('find: invalid syntax. Try: find . -name "*.txt"', 'error');
+            }
+        }
+
+        function findFilesRecursive(obj, path, pattern, results) {
+            Object.keys(obj).forEach(key => {
+                const fullPath = path === '/' ? `/${key}` : `${path}/${key}`;
+                if (typeof obj[key] === 'string') {
+                    // It's a file
+                    if (pattern.includes('*')) {
+                        const regex = new RegExp(pattern.replace(/\*/g, '.*'));
+                        if (regex.test(key)) {
+                            results.push(fullPath);
+                        }
+                    } else if (key === pattern) {
+                        results.push(fullPath);
+                    }
+                } else {
+                    // It's a directory
+                    findFilesRecursive(obj[key], fullPath, pattern, results);
+                }
+            });
+        }
+
+        function diskUsage(args) {
+            const humanReadable = args.includes('-h');
+            const output = humanReadable ? 
+                '4.0K    ./documents\n2.0K    ./downloads\n1.0K    ./desktop\n7.0K    .' :
+                '4096    ./documents\n2048    ./downloads\n1024    ./desktop\n7168    .';
+            addOutput(output);
+        }
+
+        function wordCount(args) {
+            if (args.length === 0) {
+                addOutput('wc: missing operand', 'error');
+                return;
+            }
+            
+            const filename = args[args.length - 1];
+            const current = getCurrentDirectory();
+            
+            if (current && current[filename] !== undefined) {
+                if (typeof current[filename] === 'string') {
+                    const content = current[filename];
+                    const lines = content.split('\n').length;
+                    const words = content.split(/\s+/).filter(w => w).length;
+                    const chars = content.length;
+                    
+                    if (args.includes('-l')) {
+                        addOutput(`${lines} ${filename}`);
+                    } else if (args.includes('-w')) {
+                        addOutput(`${words} ${filename}`);
+                    } else if (args.includes('-c')) {
+                        addOutput(`${chars} ${filename}`);
+                    } else {
+                        addOutput(`${lines} ${words} ${chars} ${filename}`);
+                    }
+                } else {
+                    addOutput(`wc: ${filename}: Is a directory`, 'error');
+                }
+            } else {
+                addOutput(`wc: ${filename}: No such file or directory`, 'error');
+            }
+        }
+
+        function clearTerminal() {
+            document.getElementById('terminal').innerHTML = `
+                <div class="input-line">
+                    <span class="prompt">user@linux:~$</span>
+                    <input type="text" class="command-input" id="commandInput" autocomplete="off" spellcheck="false">
+                    <span class="blink">|</span>
+                </div>
+            `;
+            document.getElementById('commandInput').addEventListener('keydown', handleKeyDown);
+            document.getElementById('commandInput').addEventListener('input', handleInput);
+            focusInput();
+        }
+
+        function showHistory() {
+            if (commandHistory.length === 0) {
+                addOutput('No commands in history');
+            } else {
+                commandHistory.forEach((cmd, index) => {
+                    addOutput(`${index + 1}  ${cmd}`);
+                });
+            }
+        }
+
+        function getCurrentDirectory() {
+            const pathParts = currentPath.split('/').filter(p => p);
+            let current = fileSystem['/'];
+            
+            for (const part of pathParts) {
+                if (current[part] && typeof current[part] === 'object') {
+                    current = current[part];
+                } else {
+                    return null;
+                }
+            }
+            
+            return current;
+        }
+
+        function directoryExists(path) {
+            const pathParts = path.split('/').filter(p => p);
+            let current = fileSystem['/'];
+            
+            for (const part of pathParts) {
+                if (current[part] && typeof current[part] === 'object') {
+                    current = current[part];
+                } else {
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+
+        function checkChallengeProgress(command) {
+            if (!currentChallenge) return;
+            
+            const currentTask = currentChallenge.tasks[currentChallenge.currentTask];
+            const expectedCommand = currentTask.command;
+            
+            // Check if the command matches (allowing for some flexibility)
+            if (commandMatches(command, expectedCommand)) {
+                addOutput(`✓ Task completed: ${currentTask.description}`, 'success');
+                currentChallenge.currentTask++;
+                
+                if (currentChallenge.currentTask >= currentChallenge.tasks.length) {
+                    // Challenge completed!
+                    completedChallenges.add(currentChallenge.id);
+                    userScore += currentChallenge.points;
+                    addOutput(`🎉 Challenge "${currentChallenge.title}" completed! +${currentChallenge.points} points`, 'success');
+                    
+                    updateLevel();
+                    updateProgress();
+                    renderChallenges();
+                    
+                    // Clear current challenge
+                    document.getElementById('currentChallenge').innerHTML = 'Select another challenge to continue learning!';
+                    document.getElementById('hintButton').style.display = 'none';
+                    currentChallenge = null;
+                } else {
+                    // Next task
+                    const nextTask = currentChallenge.tasks[currentChallenge.currentTask];
+                    const challengeDiv = document.getElementById('currentChallenge');
+                    challengeDiv.innerHTML = `
+                        <strong>${currentChallenge.title}</strong>
+                        <div style="margin: 10px 0; font-size: 12px;">${currentChallenge.description}</div>
+                        <div style="color: #ffff00;">Task ${currentChallenge.currentTask + 1}/${currentChallenge.tasks.length}:</div>
+                        <div style="margin: 5px 0;">${nextTask.description}</div>
+                        <div style="color: #888; font-size: 11px;">Try: ${nextTask.command}</div>
+                    `;
+                    addOutput(`Next task: ${nextTask.description}`, 'info');
+                }
+            }
+        }
+
+        function commandMatches(actual, expected) {
+            // Normalize commands for comparison
+            const normalizeCmd = (cmd) => cmd.trim().toLowerCase().replace(/\s+/g, ' ');
+            
+            const actualNorm = normalizeCmd(actual);
+            const expectedNorm = normalizeCmd(expected);
+            
+            // Exact match
+            if (actualNorm === expectedNorm) return true;
+            
+            // Allow for different argument orders in some cases
+            const actualParts = actualNorm.split(' ');
+            const expectedParts = expectedNorm.split(' ');
+            
+            // Same command, check if it's a basic match
+            if (actualParts[0] === expectedParts[0]) {
+                // For simple commands like pwd, ls, whoami
+                if (expectedParts.length === 1) return true;
+                
+                // For commands with arguments, be more flexible
+                if (actualParts.length >= expectedParts.length) {
+                    return expectedParts.every(part => actualParts.includes(part));
+                }
+            }
+            
+            return false;
+        }
+
+        function updateLevel() {
+            const completedCount = completedChallenges.size;
+            
+            if (completedCount >= 6) {
+                userLevel = 'Expert';
+            } else if (completedCount >= 4) {
+                userLevel = 'Advanced';
+            } else if (completedCount >= 2) {
+                userLevel = 'Intermediate';
+            } else {
+                userLevel = 'Beginner';
+            }
+            
+            document.getElementById('userLevel').textContent = userLevel;
+            document.getElementById('userScore').textContent = userScore;
+        }
+
+        function updateProgress() {
+            const totalChallenges = challenges.length;
+            const completed = completedChallenges.size;
+            const progressPercent = (completed / totalChallenges) * 100;
+            
+            document.getElementById('progressFill').style.width = progressPercent + '%';
+        }
+
+        function showHint() {
+            if (currentChallenge) {
+                addOutput(`💡 Hint: ${currentChallenge.hint}`, 'info');
+            }
+        }
+
+        function addOutput(text, className = '') {
+            const terminal = document.getElementById('terminal');
+            const inputLine = terminal.querySelector('.input-line');
+            
+            const output = document.createElement('div');
+            output.className = `output ${className}`;
+            output.textContent = text;
+            
+            terminal.insertBefore(output, inputLine);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            const terminal = document.getElementById('terminal');
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function focusInput() {
+            const input = document.getElementById('commandInput');
+            if (input) {
+                input.focus();
+            }
+        }
+
+        // Add some easter eggs and fun commands
+        function addEasterEggs() {
+            const originalExecuteCommand = executeCommand;
+            
+            executeCommand = function(cmd, args, fullCommand) {
+                switch (cmd) {
+                    case 'fortune':
+                        const fortunes = [
+                            "In Linux, there are no accidents, only learning opportunities.",
+                            "The best way to learn Linux is to break it and fix it again.",
+                            "sudo makes everything possible, but with great power comes great responsibility.",
+                            "When in doubt, read the manual (man pages).",
+                            "Linux: Where 'It works on my machine' actually means something."
+                        ];
+                        addOutput(fortunes[Math.floor(Math.random() * fortunes.length)], 'info');
+                        break;
+                    case 'cowsay':
+                        const message = args.join(' ') || 'Hello Linux!';
+                        const cowsay = `
+ ${'-'.repeat(message.length + 2)}
+< ${message} >
+ ${'-'.repeat(message.length + 2)}
+        \\   ^__^
+         \\  (oo)\\_______
+            (__)\\       )\\/\\
+                ||----w |
+                ||     ||`;
+                        addOutput(cowsay, 'info');
+                        break;
+                    case 'sl':
+                        addOutput('🚂💨 Choo choo! (Steam locomotive passing by...)', 'info');
+                        break;
+                    case 'matrix':
+                        let matrix = '';
+                        for (let i = 0; i < 10; i++) {
+                            for (let j = 0; j < 50; j++) {
+                                matrix += Math.random() > 0.5 ? '1' : '0';
+                            }
+                            matrix += '\n';
+                        }
+                        addOutput(matrix, 'success');
+                        break;
+                    case 'hack':
+                        addOutput('Initiating hack sequence...', 'info');
+                        setTimeout(() => addOutput('Access granted. Welcome to the mainframe.', 'success'), 1000);
+                        break;
+                    default:
+                        originalExecuteCommand(cmd, args, fullCommand);
+                }
+            };
+        }
+
+        // Initialize everything when the page loads
+        window.addEventListener('load', () => {
+            init();
+            addEasterEggs();
+            
+            // Add welcome message with typing effect
+            setTimeout(() => {
+                addOutput('🎯 Pro tip: Try typing "fortune" or "cowsay hello" for some fun!', 'info');
+            }, 2000);
+        });
+
+        // Keep focus on input
+        document.addEventListener('click', (e) => {
+            if (!e.target.matches('input, button, .challenge-item')) {
+                focusInput();
+            }
+        });
+
+        // Prevent context menu on right click for more authentic terminal feel
+        document.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+
+        // Add some keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'c') {
+                e.preventDefault();
+                addOutput('^C', 'error');
+                focusInput();
+            } else if (e.ctrlKey && e.key === 'l') {
+                e.preventDefault();
+                clearTerminal();
+            }
+        });
+    </script>
+</body>
+</html>
